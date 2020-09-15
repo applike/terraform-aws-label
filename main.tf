@@ -70,6 +70,7 @@ locals {
     project     = local.project
     environment = local.environment
     family      = local.family
+    application = local.application
     attributes  = local.id_context.attributes
   }
 
