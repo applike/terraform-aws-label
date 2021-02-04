@@ -1,18 +1,5 @@
 variable "context" {
-  type = object({
-    enabled             = bool
-    project             = string
-    environment         = string
-    family              = string
-    application         = string
-    delimiter           = string
-    attributes          = list(string)
-    tags                = map(string)
-    additional_tag_map  = map(string)
-    regex_replace_chars = string
-    label_order         = list(string)
-    id_length_limit     = number
-  })
+  type = any
   default = {
     enabled             = true
     project             = null
@@ -26,6 +13,8 @@ variable "context" {
     regex_replace_chars = null
     label_order         = []
     id_length_limit     = null
+    label_key_case      = null
+    label_value_case    = null
   }
   description = <<-EOT
     Single object for setting entire context at once.
@@ -34,6 +23,16 @@ variable "context" {
     Individual variable settings (non-null) override settings in context object,
     except for attributes, tags, and additional_tag_map, which are merged.
   EOT
+
+  validation {
+    condition     = lookup(var.context, "label_key_case", null) == null ? true : contains(["lower", "title", "upper"], var.context["label_key_case"])
+    error_message = "Allowed values: `lower`, `title`, `upper`."
+  }
+
+  validation {
+    condition     = lookup(var.context, "label_value_case", null) == null ? true : contains(["lower", "title", "upper", "none"], var.context["label_value_case"])
+    error_message = "Allowed values: `lower`, `title`, `upper`, `none`."
+  }
 }
 
 variable "enabled" {
@@ -116,9 +115,43 @@ variable "id_length_limit" {
   type        = number
   default     = null
   description = <<-EOT
-    Limit `id` to this many characters.
+    Limit `id` to this many characters (minimum 6).
     Set to `0` for unlimited length.
     Set to `null` for default, which is `0`.
     Does not affect `id_full`.
   EOT
+  validation {
+    condition     = var.id_length_limit == null ? true : var.id_length_limit >= 6 || var.id_length_limit == 0
+    error_message = "The id_length_limit must be >= 6 if supplied (not null), or 0 for unlimited length."
+  }
+}
+
+variable "label_key_case" {
+  type        = string
+  default     = null
+  description = <<-EOT
+    The letter case of label keys (`tag` names) (i.e. `name`, `namespace`, `environment`, `stage`, `attributes`) to use in `tags`.
+    Possible values: `lower`, `title`, `upper`.
+    Default value: `title`.
+  EOT
+
+  validation {
+    condition     = var.label_key_case == null ? true : contains(["lower", "title", "upper"], var.label_key_case)
+    error_message = "Allowed values: `lower`, `title`, `upper`."
+  }
+}
+
+variable "label_value_case" {
+  type        = string
+  default     = null
+  description = <<-EOT
+    The letter case of output label values (also used in `tags` and `id`).
+    Possible values: `lower`, `title`, `upper` and `none` (no transformation).
+    Default value: `lower`.
+  EOT
+
+  validation {
+    condition     = var.label_value_case == null ? true : contains(["lower", "title", "upper", "none"], var.label_value_case)
+    error_message = "Allowed values: `lower`, `title`, `upper`, `none`."
+  }
 }
